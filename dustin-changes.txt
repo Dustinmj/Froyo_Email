@@ -1,0 +1,6 @@
+1) Fixed icons in all menus
+2) Added "Mark All Read" menu option
+3) Added "Select All" menu option
+4) Fixed issue with some emails getting marked unread again when syncing with server for POP3 accounts
+5) Fixed "mark read" / "mark unread" button causing momentary 'freezing'
+6) Fixed "add star" / "remove star" button causing momentary 'freezing'

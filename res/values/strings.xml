@@ -111,13 +111,19 @@
     <!-- Menu item -->
     <string name="deselect_all_action">Deselect all</string>
     <!-- Menu item -->
+    <string name="unstar_all_action">Unstar all</string>
+    <!-- Menu item -->
+    <string name="select_all_action">Select all</string>
+    <!-- Menu item -->
     <string name="compose_action">Compose</string>
     <!-- Menu item/button name -->
     <string name="search_action">Search</string>
     <!-- Menu item/button name -->
     <string name="open_action">Open</string>
     <!-- Menu item -->
-    <string name="account_settings_action">Account settings</string>
+    <string name="mark_all_read_action">Mark All Read</string>
+    <!-- Menu item -->
+    <string name="account_settings_action">Account options</string>
     <!-- Menu item -->
     <string name="remove_account_action">Remove account</string>
     <!-- Menu item -->

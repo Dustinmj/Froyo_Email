@@ -74,6 +74,18 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.OnItemClickListener;
 
+// dustin imports
+/*****************/
+import android.app.ProgressDialog;
+//import android.os.Bundle;  // imported already
+//import android.os.Handler; // imported already
+//import android.os.Message; // Message is defined as a class of this package... stupid... use fqn to get android.os.Message
+import java.util.ArrayList;
+import java.lang.Long;
+import java.util.HashSet;
+import java.util.Collections;
+/*****************/
+
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -82,6 +94,16 @@ import java.util.TimerTask;
 
 public class MessageList extends ListActivity implements OnItemClickListener, OnClickListener,
         AnimationListener {
+
+    // Dustin 10-7
+    private final int DUSTIN_MULTISET_TYPE_READ = 0;
+    private final int DUSTIN_MULTISET_TYPE_FAV = 1;
+    private final int DUSTIN_MULTISET_TYPE_UNREAD = 2;
+    private final int DUSTIN_MULTISET_TYPE_UNFAV = 3;
+    // need to store these so we can cancel them on pause to prevent anr in some cases
+    private ProgressDialog markingDialog;
+    private ProgressDialog countingDialog;
+
     // Intent extras (internal to this activity)
     private static final String EXTRA_ACCOUNT_ID = "com.android.email.activity._ACCOUNT_ID";
     private static final String EXTRA_MAILBOX_TYPE = "com.android.email.activity.MAILBOX_TYPE";
@@ -236,6 +258,10 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
         super.onCreate(icicle);
         setContentView(R.layout.message_list);
 
+	// dustin dialogs
+	markingDialog = new ProgressDialog( MessageList.this );
+        countingDialog = new ProgressDialog( MessageList.this );
+
         mHandler = new MessageListHandler();
         mControllerCallback = new ControllerResults();
         mCanAutoRefresh = true;
@@ -305,6 +331,9 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
     @Override
     public void onPause() {
         super.onPause();
+        // dustin
+        this.markingDialog.cancel(); 
+        this.countingDialog.cancel();
         mController.removeResultCallback(mControllerCallback);
     }
 
@@ -408,10 +437,13 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_read_unread:
-                onMultiToggleRead(mListAdapter.getSelectedSet());
+                // dustin test for read/unread action
+                boolean setRead = mReadUnreadButton.getText().equals( this.getString( R.string.read_action ) ); 
+                onMultiToggleRead(mListAdapter.getSelectedSet(), setRead);
                 break;
             case R.id.btn_multi_favorite:
-                onMultiToggleFavorite(mListAdapter.getSelectedSet());
+                boolean doStar = mFavoriteButton.getText().equals( this.getString( R.string.set_star_action ) );
+                onMultiToggleFavorite(mListAdapter.getSelectedSet(), doStar);
                 break;
             case R.id.btn_multi_delete:
                 onMultiDelete(mListAdapter.getSelectedSet());
@@ -471,6 +503,18 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
             case R.id.deselect_all:
                 onDeselectAll();
                 return true;
+            // dustin added mark all read
+            case R.id.mark_all_read:
+                onMarkAllRead();
+                return true;
+            // dustin added unstar all
+            case R.id.unstar_all:
+                onUnstarAll();
+                return true;
+            // dustin added select all
+            case R.id.select_all:
+                onSelectAll();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -479,6 +523,9 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
         super.onCreateContextMenu(menu, v, menuInfo);
+
+	// dustin add progress dialogs
+
 
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) menuInfo;
         // There is no context menu for the list footer
@@ -612,6 +659,173 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
         showMultiPanel(false);
     }
 
+    // dustin added select all
+    private void onSelectAll(){	
+	final Cursor c = mListAdapter.getCursor();
+	// put cursor at starting pos
+	c.moveToPosition(-1);
+        // create set of ids
+        HashSet<Long> mSet = new HashSet<Long>();
+        // create a set
+	while ( c.moveToNext() ) {
+ 	   mSet.add( (long) c.getInt( MessageListAdapter.COLUMN_ID ) );
+	}
+        mListAdapter.setSelectedSet( mSet );
+        mListView.invalidateViews();
+        showMultiPanel(true);
+    }
+
+    // dustin added mark all read
+    private void onMarkAllRead() {
+	doDustinMultiSet( DUSTIN_MULTISET_TYPE_READ, true );
+    }   
+
+    // dustin added unstar all
+    private void onUnstarAll() {
+	doDustinMultiSet( DUSTIN_MULTISET_TYPE_UNFAV, false );
+    }
+
+    // overloaded method for doDustinMultiSet without a set of selected items (eg do all)
+    private void doDustinMultiSet( final int type, final boolean allValue ){
+	doDustinMultiSet( type, allValue, null );
+    }
+
+    // dustin multiset helper method that has to check data for each
+    /*
+    * @param type: one of DUSTIN_MULTISET_TYPE_READ, DUSTIN_MULTISET_TYPE_UNREAD, DUSTIN_MULTISET_TYPE_FAV, DUSTIN_MULTISET_TYPE_UNFAV
+    * @param allvalue: the value to be applied to all members of the set or cursor
+    * @param mSet: a set of selected items (if one exists), if this set is null a cursor over the entire listview is used (eg all items) 
+    * TODO :: Umm this is quite the long method :/
+    */
+    private void doDustinMultiSet( final int type, final boolean allValue, final Set<Long> mSet ){
+        final int MSG_ACTION = 0;
+        final int MSG_UPDATE = 1;
+        final int MSG_CLOSE = 2;
+        // do this with cool dialog :)
+	// get a cursor over the list
+        final Cursor c = mListAdapter.getCursor();
+        // count unread and add to list (so we can show max on dialog)
+        // we'll thread this too to make it smooth
+        // set up main progress dialog
+        final ProgressDialog doDiag = this.markingDialog;
+        doDiag.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        String progressMessage;
+        // figure out what we're doing
+        switch( type ){
+		case DUSTIN_MULTISET_TYPE_UNREAD:
+			progressMessage = "Marking Unread...";
+                        break;
+		case DUSTIN_MULTISET_TYPE_READ:
+			progressMessage = "Marking Read...";
+                        break;
+                case DUSTIN_MULTISET_TYPE_UNFAV:
+                        progressMessage = "Unstarring...";
+                        break;
+                case DUSTIN_MULTISET_TYPE_FAV:
+                        progressMessage = "Starring...";
+                        break;
+                default:
+                        progressMessage = "Please Wait...";
+                        break;
+	}
+        doDiag.setMessage( progressMessage );
+        doDiag.setProgress(0);
+        // show count dialog (could be applicable to huge inboxes... mebbe :/)  
+	// only needed if we don't already have a set      
+	final ProgressDialog countDiag = this.countingDialog;
+	if( mSet == null ){
+		countDiag.setMessage( "Preparing..." );
+		countDiag.show();
+	}
+        // handler to receive callbacks from our thread and adjust ui dialogs
+        final Handler mHandler = new Handler() {
+		public void handleMessage( android.os.Message msg ) { // cannot import message due to classname collision
+                  switch( msg.getData().getInt( "what" ) ){
+		  	case MSG_ACTION:
+                                if( mSet == null ) countDiag.cancel();
+				doDiag.setMax( msg.getData().getInt( "count" ) );
+                                doDiag.show();
+                                break;
+                        case MSG_UPDATE:
+                                doDiag.setProgress( msg.getData().getInt( "count" ) );
+                                break;
+                        case MSG_CLOSE:
+                                doDiag.cancel();
+                                break;
+		  }
+	        }
+        };
+        new Thread(new Runnable() {
+                private void sendMessage( int what, int extra ){
+	                android.os.Message msg = mHandler.obtainMessage();
+			Bundle b = new Bundle();
+			b.putInt("count", extra);
+			b.putInt("what", what);
+			msg.setData(b);
+			mHandler.sendMessage(msg);
+		}
+    		public void run() {
+                        // store number to mark
+                        int numToMark = 0;
+	                // arraylist to hold the ids (separated so we can show progress bar)
+	                ArrayList<Long> idList = new ArrayList<Long>();
+			if( mSet == null ){
+				// put cursor at starting pos
+				c.moveToPosition(-1);
+		                // count all unread emails... create a list
+				while ( c.moveToNext() ) {
+				    long id = c.getInt(MessageListAdapter.COLUMN_ID);
+		                    boolean read;
+				    // figure out what we're doing
+				    switch( type ){
+					case DUSTIN_MULTISET_TYPE_READ:
+						read = c.getInt(MessageListAdapter.COLUMN_READ) == 1;
+						break;
+					case DUSTIN_MULTISET_TYPE_UNREAD:
+						read = c.getInt(MessageListAdapter.COLUMN_READ) == 0;
+						break;
+					case DUSTIN_MULTISET_TYPE_FAV:
+						read = c.getInt(MessageListAdapter.COLUMN_FAVORITE) == 0;
+						break;
+					case DUSTIN_MULTISET_TYPE_UNFAV:
+						read = c.getInt(MessageListAdapter.COLUMN_FAVORITE) == 1;
+						break;
+		                        default:
+		                                read = false;
+		                                break;
+				    } 
+				    if ( read != allValue ) {
+		                        idList.add( id );
+					numToMark++;
+				    }
+				}
+                        }else{
+                                for( long id : mSet ){
+					idList.add( id );
+				}
+				numToMark = idList.size();
+			}
+                        // send data back to UI thread to update
+                        sendMessage( MSG_ACTION, numToMark );
+			// now itterate and mark these read
+                        for( int i = 0; i < numToMark; i++ ){
+                                long id = (long) idList.get(i);			    
+		                // figure out what we're doing
+			        if( type == DUSTIN_MULTISET_TYPE_READ || type == DUSTIN_MULTISET_TYPE_UNREAD ){
+			                onSetMessageRead( id, allValue );
+				}else if( type == DUSTIN_MULTISET_TYPE_FAV || type == DUSTIN_MULTISET_TYPE_UNFAV ){
+			                onSetMessageFavorite( id, allValue );
+			        } 
+                                // update data in UI thread
+                                sendMessage( MSG_UPDATE, i+1 );
+			}
+                        // we're done... close the indicator  
+                        sendMessage( MSG_CLOSE, 0 );
+    		}
+  	}).start();
+
+    }
+
     private void onOpenMessage(long messageId, long mailboxId) {
         // TODO: Should not be reading from DB in UI thread
         EmailContent.Mailbox mailbox = EmailContent.Mailbox.restoreMailboxWithId(this, mailboxId);
@@ -689,8 +903,16 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
      * sense of the helper methods is "true=unread".
      *
      * @param selectedSet The current list of selected items
+     * // Dustin 10-7 added boolean markRead instead of toggle
      */
-    private void onMultiToggleRead(Set<Long> selectedSet) {
+    private void onMultiToggleRead(Set<Long> selectedSet, final boolean markRead) {
+
+	int type = markRead ? DUSTIN_MULTISET_TYPE_READ : DUSTIN_MULTISET_TYPE_UNREAD;
+	doDustinMultiSet( type, markRead, selectedSet );
+		
+	// dustin 10-7
+
+	/*
         toggleMultiple(selectedSet, new MultiToggleHelper() {
 
             public boolean getField(long messageId, Cursor c) {
@@ -706,6 +928,8 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
                 return false;
             }
         });
+	*/
+
     }
 
     /**
@@ -713,7 +937,12 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
      *
      * @param selectedSet The current list of selected items
      */
-    private void onMultiToggleFavorite(Set<Long> selectedSet) {
+    private void onMultiToggleFavorite(Set<Long> selectedSet, final boolean doStar) {
+	
+	int type = doStar ? DUSTIN_MULTISET_TYPE_FAV : DUSTIN_MULTISET_TYPE_UNFAV;
+	doDustinMultiSet( type, doStar, selectedSet );
+
+	/* Dustin 10-7
         toggleMultiple(selectedSet, new MultiToggleHelper() {
 
             public boolean getField(long messageId, Cursor c) {
@@ -729,6 +958,7 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
                 return false;
             }
         });
+	*/
     }
 
     private void onMultiDelete(Set<Long> selectedSet) {
@@ -1599,7 +1829,7 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
         private long mLastRefreshTime = 0;
         // How long we want to wait for refreshes (a good starting guess)
         // I suspect this could be lowered down to even 1000 or so, but this seems ok for now
-        private static final long REFRESH_INTERVAL_MS = 2500;
+        private static final long REFRESH_INTERVAL_MS = 1000;
 
         private java.text.DateFormat mDateFormat;
         private java.text.DateFormat mTimeFormat;
@@ -1693,6 +1923,10 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
 
         public Set<Long> getSelectedSet() {
             return mChecked;
+        }
+
+        public void setSelectedSet( HashSet s ) {
+            mChecked = s;
         }
 
         @Override
