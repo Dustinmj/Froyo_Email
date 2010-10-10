@@ -155,6 +155,16 @@
     <string name="error_loading_message_body">Unexpected error while loading message text.  Message
         may be too large to view.</string>
 
+
+    <!-- On Message List, Progress dialog title for unstarring -->
+    <string name="progress_action_unstar">Unstarring...</string>
+    <!-- On Message List, Progress dialog title for marking read -->
+    <string name="progress_action_mark_read">Marking Read...</string>
+    <!-- On Message List, Progress dialog title for starring -->
+    <string name="progress_action_star">Starring...</string>
+    <!-- On Message List, Progress dialog title for marking unread -->
+    <string name="progress_action_mark_unread">Marking Unread...</string>
+
     <!-- Notification message in notifications window when one account has
          one or more new messages; e.g, "279 unread (someone@google.com)". -->
     <plurals name="notification_new_one_account_fmt">
