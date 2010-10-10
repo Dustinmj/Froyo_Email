@@ -35,12 +35,16 @@ import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.URI;
 
+<<<<<<< HEAD
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
+=======
+import javax.net.ssl.SSLException;
+>>>>>>> 6f35e9a1089fa93b48e258eaaf68c61560d5933c
 
 /**
  * This class implements the common aspects of "transport", one layer below the 
