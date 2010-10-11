@@ -74,11 +74,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.OnItemClickListener;
 
-
 import android.app.ProgressDialog;
-//import android.os.Bundle;  // imported already
-//import android.os.Handler; // imported already
-//import android.os.Message; // Message is defined as a class of this package... stupid... use fqn to get android.os.Message
 import java.lang.Long;
 import java.util.HashSet;
 
@@ -248,7 +244,7 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
         super.onCreate(icicle);
         setContentView(R.layout.message_list);
 
-	progressDialog = new ProgressDialog( MessageList.this );
+        progressDialog = new ProgressDialog( MessageList.this );
 
         mHandler = new MessageListHandler();
         mControllerCallback = new ControllerResults();
@@ -423,11 +419,13 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_read_unread:
-                boolean setRead = mReadUnreadButton.getText().equals( this.getString( R.string.read_action ) ); 
+                boolean setRead = mReadUnreadButton.getText().equals( 
+                        this.getString( R.string.read_action ) ); 
                 onMultiToggleRead(mListAdapter.getSelectedSet(), setRead);
                 break;
             case R.id.btn_multi_favorite:
-                boolean doStar = mFavoriteButton.getText().equals( this.getString( R.string.set_star_action ) );
+                boolean doStar = mFavoriteButton.getText().equals( 
+                        this.getString( R.string.set_star_action ) );
                 onMultiToggleFavorite(mListAdapter.getSelectedSet(), doStar);
                 break;
             case R.id.btn_multi_delete:
@@ -488,15 +486,12 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
             case R.id.deselect_all:
                 onDeselectAll();
                 return true;
-            // dustin added mark all read
             case R.id.mark_all_read:
                 onMarkAllRead();
                 return true;
-            // dustin added unstar all
             case R.id.unstar_all:
                 onUnstarAll();
                 return true;
-            // dustin added select all
             case R.id.select_all:
                 onSelectAll();
                 return true;
@@ -641,17 +636,16 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
         showMultiPanel(false);
     }
 
-    // dustin added select all
-    private void onSelectAll(){	
-	final Cursor c = mListAdapter.getCursor();
-	// put cursor at starting pos
-	c.moveToPosition(-1);
+    private void onSelectAll(){        
+        final Cursor c = mListAdapter.getCursor();
+        // put cursor at starting pos
+        c.moveToPosition(-1);
         // create set of ids
         HashSet<Long> mSet = new HashSet<Long>();
         // create a set
-	while ( c.moveToNext() ) {
- 	   mSet.add( (long) c.getInt( MessageListAdapter.COLUMN_ID ) );
-	}
+        while ( c.moveToNext() ) {
+            mSet.add( (long) c.getInt( MessageListAdapter.COLUMN_ID ) );
+        }
         mListAdapter.setSelectedSet( mSet );
         mListView.invalidateViews();
         showMultiPanel(true);
@@ -664,14 +658,13 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
      * @param markRead should the items be marked read or unread
      */
     private void onMultiToggleRead(Set<Long> selectedSet, final boolean markRead) {
-
-	String progressTitle = markRead ? getString( R.string.progress_action_mark_read ) : getString( R.string.progress_action_mark_unread );
+        String progressTitle = markRead ? getString( R.string.progress_action_mark_read ) 
+                                        : getString( R.string.progress_action_mark_unread );
         applyActionToSet( progressTitle, selectedSet, new MultiActionHelper(){
-		public void applyAction( long id ){
-			onSetMessageRead( id, markRead );
-		}
-	} );
-
+                public void applyAction( long id ){
+                        onSetMessageRead( id, markRead );
+                }
+        } );
     }
 
     /**
@@ -680,63 +673,67 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
      * @param selectedSet The current list of selected items
      * @param doStar Whether the items should be starred or 'unstarred'
      */
-    private void onMultiToggleFavorite(Set<Long> selectedSet, final boolean doStar) {	
-	String progressTitle = doStar ? getString( R.string.progress_action_star ) : getString( R.string.progress_action_unstar );
+    private void onMultiToggleFavorite(Set<Long> selectedSet, final boolean doStar) {
+        String progressTitle = doStar ? getString( R.string.progress_action_star )
+                                      : getString( R.string.progress_action_unstar );
         applyActionToSet( progressTitle, selectedSet, new MultiActionHelper(){
-		public void applyAction( long id ){
-			onSetMessageFavorite( id, doStar );
-		}
-	} );
+                public void applyAction( long id ){
+                        onSetMessageFavorite( id, doStar );
+                }
+        } );
     }
 
     // TODO: find static refs for true/false 'isread' values
     private void onMarkAllRead() {
         HashSet<Long> toMark = getApplicableMessages( MessageListAdapter.COLUMN_READ, 0 );
-	String progressTitle = getString( R.string.progress_action_mark_read );
+        String progressTitle = getString( R.string.progress_action_mark_read );
         applyActionToSet( progressTitle, toMark, new MultiActionHelper(){
-		public void applyAction( long id ){
-			onSetMessageRead( id, true );
-		}
-	} );
-    }   
+                public void applyAction( long id ){
+                        onSetMessageRead( id, true );
+                }
+        } );
+    }
 
     private void onUnstarAll() {
         HashSet<Long> toMark = getApplicableMessages( MessageListAdapter.COLUMN_FAVORITE, 1 );
-	String progressTitle = getString( R.string.progress_action_unstar );
+        String progressTitle = getString( R.string.progress_action_unstar );
         applyActionToSet( progressTitle, toMark, new MultiActionHelper(){
-		public void applyAction( long id ){
-			onSetMessageFavorite( id, false );
-		}
-	} );
+                public void applyAction( long id ){
+                        onSetMessageFavorite( id, false );
+                }
+        } );
     }
 
     // returns a set of messages to apply an action to based return values from helper
     private HashSet<Long> getApplicableMessages( int toCompare, int expectedValue ){
-	HashSet<Long> returnSet = new HashSet<Long>();        
-	Cursor c = mListAdapter.getCursor();
-	c.moveToPosition(-1);
+        HashSet<Long> returnSet = new HashSet<Long>();
+        Cursor c = mListAdapter.getCursor();
+        c.moveToPosition(-1);
         while( c.moveToNext() ){
-		if( c.getInt( toCompare ) == expectedValue ){
-			returnSet.add( (long) c.getInt( MessageListAdapter.COLUMN_ID ) );
-		}
-	}
-	return returnSet;
+                if( c.getInt( toCompare ) == expectedValue ){
+                        returnSet.add( (long) c.getInt( MessageListAdapter.COLUMN_ID ) );
+                }
+        }
+        return returnSet;
     }
 
-    // applies an action to a set of messages as defined by helper, spawns a new thread, shows progress dialog
-    private void applyActionToSet( String progressTitle, final Set<Long> mSet, final MultiActionHelper helper ){
+    // applies an action to a set of messages as defined by helper, spawns a new 
+    // thread, shows progress dialog
+    private void applyActionToSet( String progressTitle, final Set<Long> mSet, 
+                                                final MultiActionHelper helper ){
         final int MSG_UPDATE = 0;
         final int MSG_CLOSE = 1;
         // set up main progress dialog
         final ProgressDialog mDialog = this.progressDialog;
-	mDialog.setProgressStyle( ProgressDialog.STYLE_HORIZONTAL );
+        mDialog.setProgressStyle( ProgressDialog.STYLE_HORIZONTAL );
         mDialog.setTitle( progressTitle );
- 	mDialog.setProgress( 0 );
-	mDialog.setMax( mSet.size() );
-	mDialog.show();
+         mDialog.setProgress( 0 );
+        mDialog.setMax( mSet.size() );
+        mDialog.show();
         // handler to receive callbacks from our thread and adjust ui dialogs
         final Handler mHandler = new Handler() {
-		public void handleMessage( android.os.Message msg ) { // cannot import message due to classname collision
+		// cannot import message due to classname collision
+                public void handleMessage( android.os.Message msg ) {
                   switch( msg.getData().getInt( "what" ) ){
                         case MSG_UPDATE:
                                 mDialog.setProgress( msg.getData().getInt( "count" ) );
@@ -744,32 +741,32 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
                         case MSG_CLOSE:
                                 mDialog.cancel();
                                 break;
-		  }
-	        }
+                  }
+                }
         };
-	new Thread(new Runnable() {
-		        private void sendMessage( int what, int count ){
-			        android.os.Message msg = mHandler.obtainMessage();
-				Bundle b = new Bundle();
-				b.putInt("count", count);
-				b.putInt("what", what);
-				msg.setData(b);
-				mHandler.sendMessage(msg);
-			}
-	    		public void run(){
-                                int i = 0;
-				// now itterate and mark these read
-		                for( Long id : mSet ){
-		                        // update data in UI thread
-		                        sendMessage( MSG_UPDATE, i+1 );
-					// apply the action
-					helper.applyAction( id );
-					i++;				
-				}
-		                // we're done... close the indicator  
-		                sendMessage( MSG_CLOSE, 0 );
-	    		}
-	  	}).start();
+        new Thread(new Runnable() {
+                private void sendMessage( int what, int count ){
+                        android.os.Message msg = mHandler.obtainMessage();
+                        Bundle b = new Bundle();
+                        b.putInt("count", count);
+                        b.putInt("what", what);
+                        msg.setData(b);
+                        mHandler.sendMessage(msg);
+                }
+                    public void run(){
+                        int i = 0;
+                        // now itterate and mark these read
+                        for( Long id : mSet ){
+                                // update data in UI thread
+                                sendMessage( MSG_UPDATE, i+1 );
+                                // apply the action
+                                helper.applyAction( id );
+                                i++;
+                        }
+                        // we're done... close the indicator
+                        sendMessage( MSG_CLOSE, 0 );
+                    }
+                  }).start();
     }
 
     private void onOpenMessage(long messageId, long mailboxId) {
