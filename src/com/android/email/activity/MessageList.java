@@ -419,12 +419,12 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn_read_unread:
-                boolean setRead = mReadUnreadButton.getText().equals( 
-                        this.getString( R.string.read_action ) ); 
+                boolean setRead = mReadUnreadButton.getText().equals(
+                        this.getString( R.string.read_action ) );
                 onMultiToggleRead(mListAdapter.getSelectedSet(), setRead);
                 break;
             case R.id.btn_multi_favorite:
-                boolean doStar = mFavoriteButton.getText().equals( 
+                boolean doStar = mFavoriteButton.getText().equals(
                         this.getString( R.string.set_star_action ) );
                 onMultiToggleFavorite(mListAdapter.getSelectedSet(), doStar);
                 break;
@@ -636,7 +636,7 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
         showMultiPanel(false);
     }
 
-    private void onSelectAll(){        
+    private void onSelectAll(){
         final Cursor c = mListAdapter.getCursor();
         // put cursor at starting pos
         c.moveToPosition(-1);
@@ -1752,7 +1752,7 @@ public class MessageList extends ListActivity implements OnItemClickListener, On
             return mChecked;
         }
 
-        public void setSelectedSet( HashSet s ) {
+        public void setSelectedSet( HashSet<Long> s ) {
             mChecked = s;
         }
 
